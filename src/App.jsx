@@ -24,12 +24,13 @@ function isWithinElement(x, y, element) {
     const b = { x: x2, y: y2 };
     const c = { x, y };
     const offSet = distance(a, b) - (distance(a, c) + distance(b, c));
+    console.log("offSet is: ", offSet);
     return Math.abs(offSet) < 1;
   }
 }
 
 const distance = (a, b) => {
-  Math.sqrt(Math.pow(a.x - b.x, 2) + Math.pow(a.y - b.y, 2));
+  return Math.sqrt(Math.pow(a.x - b.x, 2) + Math.pow(a.y - b.y, 2));
 };
 
 function getElementAtPosition(x, y, elements) {
