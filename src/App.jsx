@@ -208,10 +208,10 @@ function App() {
 
   useEffect(() => {
     const undoRedoFunction = (event) => {
-      if ((event.metaKey || event.ctrlKey) && event.key === "z") {
+      if ((event.metaKey || event.ctrlKey) && (event.key === "z" || event.key === "Y")) {
         undo();
       }
-      if ((event.metaKey || event.ctrlKey) && event.key === "y") {
+      if ((event.metaKey || event.ctrlKey) && (event.key === "y" || event.key === "Y")) {
         redo();
       }
     };
