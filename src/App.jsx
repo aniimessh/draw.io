@@ -1,6 +1,11 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import rough from "roughjs";
 import { getStroke } from "perfect-freehand";
+import { LuMousePointer2, LuRectangleHorizontal } from "react-icons/lu";
+import { MdOutlineMaximize } from "react-icons/md";
+import { BiPencil } from "react-icons/bi";
+import { IoText } from "react-icons/io5";
+import { IoArrowUndoOutline, IoArrowRedoOutline } from "react-icons/io5";
 
 const generator = rough.generator();
 
@@ -406,46 +411,76 @@ function App() {
 
   return (
     <div>
-      <div style={{ position: "fixed" }}>
+      <div className="fixed left-1/2 transform -translate-x-1/2 bg-gray-900 p-2 flex rounded-md top-1 w-[15%] justify-around">
         <input
           type="radio"
           id="selection"
           checked={tool === "selection"}
           onChange={() => setTool("selection")}
+          className="hidden"
         />
-        <label htmlFor="selection">Selection</label>
+        <label
+          htmlFor="selection"
+          className="text-white hover:bg-gray-800 cursor-pointer p-2 flex duration-200 rounded-md"
+        >
+          <LuMousePointer2 fontSize={20} />
+        </label>
         <input
           type="radio"
           id="line"
           checked={tool === "line"}
           onChange={() => setTool("line")}
+          className="hidden"
         />
-        <label htmlFor="line">Line</label>
+        <label
+          htmlFor="line"
+          className="text-white hover:bg-gray-800 cursor-pointer p-2 flex duration-200 rounded-md items-center"
+        >
+          <MdOutlineMaximize fontSize={20} />
+        </label>
         <input
           type="radio"
           id="rectangle"
           checked={tool === "rectangle"}
           onChange={() => setTool("rectangle")}
+          className="hidden"
         />
-        <label htmlFor="rectangle">Rectangle</label>
+        <label
+          htmlFor="rectangle"
+          className="text-white hover:bg-gray-800 cursor-pointer p-2 flex duration-200 rounded-md"
+        >
+          <LuRectangleHorizontal fontSize={20} />
+        </label>
         <input
           type="radio"
           id="pencil"
           checked={tool === "pencil"}
           onChange={() => setTool("pencil")}
+          className="hidden"
         />
-        <label htmlFor="pencil">Pencil</label>
+        <label
+          htmlFor="pencil"
+          className="text-white hover:bg-gray-800 cursor-pointer p-2 flex duration-200 rounded-md"
+        >
+          <BiPencil fontSize={20} />
+        </label>
         <input
           type="radio"
           id="text"
           checked={tool === "text"}
           onChange={() => setTool("text")}
+          className="hidden"
         />
-        <label htmlFor="text">Text</label>
+        <label
+          htmlFor="text"
+          className="text-white hover:bg-gray-800 cursor-pointer p-2 flex duration-200 rounded-md"
+        >
+          <IoText fontSize={20} />
+        </label>
       </div>
-      <div style={{ position: "fixed", bottom: 0 }}>
-        <button onClick={undo}> Undo</button>
-        <button onClick={redo}> Redo</button>
+      <div className="fixed left-1  bg-gray-900 p-2 flex rounded-md top-1 justify-around">
+        <button onClick={undo} className="text-white hover:bg-gray-800 cursor-pointer p-1 flex duration-200 rounded-md"> <IoArrowUndoOutline /></button>
+        <button onClick={redo} className="text-white hover:bg-gray-800 cursor-pointer p-1 flex duration-200 rounded-md"> <IoArrowRedoOutline /></button>
       </div>
       {action === "writing" ? (
         <textarea
