@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import rough from "roughjs";
 import { getStroke } from "perfect-freehand";
 
@@ -15,6 +15,8 @@ function createElement(id, x1, y1, x2, y2, type) {
       return { id, x1, y1, x2, y2, type, roughElement };
     case "pencil":
       return { id, type, points: [{ x: x1, y: y1 }] };
+    case "text":
+      return { id, type, x1, y1, x2, y2, text: "" };
     default:
       throw new Error(`Type not defined ${type}`);
   }
@@ -37,11 +39,10 @@ function positionWithinElement(x, y, element) {
   const { type, x1, x2, y1, y2 } = element;
   switch (type) {
     case "line":
-      onLine(x1, y1, x2, y2, x, y);
+      const on = onLine(x1, y1, x2, y2, x, y);
       const start = nearPoint(x, y, x1, y1, "start");
       const end = nearPoint(x, y, x2, y2, "end");
-      const insideLine = Math.abs(offSet) < 1 ? "inside" : null;
-      return start || end || insideLine;
+      return start || end || on;
     case "rectangle":
       const topLeft = nearPoint(x, y, x1, y1, "TL");
       const topRight = nearPoint(x, y, x2, y1, "TR");
@@ -58,6 +59,8 @@ function positionWithinElement(x, y, element) {
         );
       });
       return betweenAnyPoint ? "inside" : null;
+    case "text":
+      return x >= x1 && x <= x2 && y >= y1 && y <= y2 ? "inside" : null;
     default:
       throw new Error(`Type not defined ${type}`);
   }
@@ -184,6 +187,11 @@ const drawElement = (roughCanvas, context, element) => {
       );
       context.fill(new Path2D(stroke));
       break;
+    case "text":
+      context.textBaseline = "top";
+      context.font = "24px sans-serif";
+      context.fillText(element.text, element.x1, element.y1);
+      break;
     default:
       throw new Error(`Type not defined ${element.type}`);
   }
@@ -194,8 +202,20 @@ const adjustmentRequired = (type) => ["line", "rectangle"].includes(type);
 function App() {
   const [elements, setElement, undo, redo] = useHistory([]);
   const [action, setAction] = useState("none");
-  const [tool, setTool] = useState("pencil");
+  const [tool, setTool] = useState("text");
   const [selectedElement, setSelectedElement] = useState(null);
+  const textAreaRef = useRef();
+
+  useEffect(() => {
+    const textArea = textAreaRef.current;
+    if (action === "writing") {
+      setTimeout(() => {
+        textArea.focus();
+        textArea.value = selectedElement.text;
+      }, 0);
+    }
+  }, [action, selectedElement]);
+
   useLayoutEffect(() => {
     const canvas = document.getElementById("canvas");
     const context = canvas.getContext("2d");
@@ -203,15 +223,24 @@ function App() {
     context.clearRect(0, 0, canvas.width, canvas.height);
 
     const roughCanvas = rough.canvas(canvas);
-    elements.forEach((element) => drawElement(roughCanvas, context, element));
-  }, [elements]);
+    elements.forEach((element) => {
+      if (action === "writing" && selectedElement.id === element.id) return;
+      drawElement(roughCanvas, context, element);
+    });
+  }, [elements, action, selectedElement]);
 
   useEffect(() => {
     const undoRedoFunction = (event) => {
-      if ((event.metaKey || event.ctrlKey) && (event.key === "z" || event.key === "Z")) {
+      if (
+        (event.metaKey || event.ctrlKey) &&
+        (event.key === "z" || event.key === "Z")
+      ) {
         undo();
       }
-      if ((event.metaKey || event.ctrlKey) && (event.key === "y" || event.key === "Y")) {
+      if (
+        (event.metaKey || event.ctrlKey) &&
+        (event.key === "y" || event.key === "Y")
+      ) {
         redo();
       }
     };
@@ -221,7 +250,7 @@ function App() {
     };
   }, [undo, redo]);
 
-  const updateElement = (id, x1, y1, x2, y2, type) => {
+  const updateElement = (id, x1, y1, x2, y2, type, options) => {
     const copyelement = [...elements];
     switch (type) {
       case "line":
@@ -231,6 +260,17 @@ function App() {
       case "pencil":
         copyelement[id].points = [...copyelement[id].points, { x: x2, y: y2 }];
         break;
+      case "text":
+        const textWidth = document
+          .getElementById("canvas")
+          .getContext("2d")
+          .measureText(options.text).width;
+        const textHeight = 24;
+        copyelement[id] = {
+          ...createElement(id, x1, y1, x1 + textWidth, y1 + textHeight, type),
+          text: options.text,
+        };
+        break;
       default:
         throw new Error(`Type not defined ${type}`);
     }
@@ -238,6 +278,7 @@ function App() {
   };
 
   const handleMouseDown = (event) => {
+    if (action === "writing") return;
     const { clientX, clientY } = event;
     if (tool === "selection") {
       const element = getElementAtPosition(clientX, clientY, elements);
@@ -270,7 +311,7 @@ function App() {
       );
       setElement((prevState) => [...prevState, element]);
       setSelectedElement(element);
-      setAction("drawing");
+      setAction(tool === "text" ? "writing" : "drawing");
     }
   };
 
@@ -307,7 +348,16 @@ function App() {
         const height = y2 - y1;
         const newX1 = clientX - offSetX;
         const newY1 = clientY - offSetY;
-        updateElement(id, newX1, newY1, newX1 + width, newY1 + height, type);
+        const options = type === "text" ? { text: selectedElement.text } : {};
+        updateElement(
+          id,
+          newX1,
+          newY1,
+          newX1 + width,
+          newY1 + height,
+          type,
+          options
+        );
       }
     } else if (action === "resize") {
       const { id, type, position, ...coordinates } = selectedElement;
@@ -320,8 +370,17 @@ function App() {
       updateElement(id, x1, y1, x2, y2, type);
     }
   };
-  const handleMouseUp = () => {
+  const handleMouseUp = (event) => {
+    const { clientX, clientY } = event;
     if (selectedElement) {
+      if (
+        selectedElement.type == "text" &&
+        clientX - selectedElement.offSetX === selectedElement.x1 &&
+        clientY - selectedElement.offSetY === selectedElement.y1
+      ) {
+        setAction("writing");
+        return;
+      }
       const index = selectedElement.id;
       const { id, type } = elements[index];
       if (
@@ -332,8 +391,17 @@ function App() {
         updateElement(id, x1, y1, x2, y2, type);
       }
     }
+
+    if (action === "writing") return;
     setAction("none");
     setSelectedElement(null);
+  };
+
+  const handleBlur = (event) => {
+    const { id, x1, y1, type } = selectedElement;
+    setAction("none");
+    setSelectedElement(null);
+    updateElement(id, x1, y1, null, null, type, { text: event.target.value });
   };
 
   return (
@@ -367,11 +435,37 @@ function App() {
           onChange={() => setTool("pencil")}
         />
         <label htmlFor="pencil">Pencil</label>
+        <input
+          type="radio"
+          id="text"
+          checked={tool === "text"}
+          onChange={() => setTool("text")}
+        />
+        <label htmlFor="text">Text</label>
       </div>
       <div style={{ position: "fixed", bottom: 0 }}>
         <button onClick={undo}> Undo</button>
         <button onClick={redo}> Redo</button>
       </div>
+      {action === "writing" ? (
+        <textarea
+          onBlur={handleBlur}
+          ref={textAreaRef}
+          style={{
+            position: "fixed",
+            top: selectedElement.y1 - 5,
+            left: selectedElement.x1,
+            font: "24px sans-serif",
+            margin: 0,
+            padding: 0,
+            outline: 0,
+            resize: "auto",
+            overflow: "hidden",
+            whiteSpace: "pre",
+            background: "transparent",
+          }}
+        ></textarea>
+      ) : null}
       <canvas
         id="canvas"
         width={window.innerWidth}
