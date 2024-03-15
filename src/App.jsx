@@ -479,8 +479,20 @@ function App() {
         </label>
       </div>
       <div className="fixed left-1  bg-gray-900 p-2 flex rounded-md top-1 justify-around">
-        <button onClick={undo} className="text-white hover:bg-gray-800 cursor-pointer p-1 flex duration-200 rounded-md"> <IoArrowUndoOutline /></button>
-        <button onClick={redo} className="text-white hover:bg-gray-800 cursor-pointer p-1 flex duration-200 rounded-md"> <IoArrowRedoOutline /></button>
+        <button
+          onClick={undo}
+          className="text-white hover:bg-gray-800 cursor-pointer p-1 flex duration-200 rounded-md"
+        >
+          {" "}
+          <IoArrowUndoOutline />
+        </button>
+        <button
+          onClick={redo}
+          className="text-white hover:bg-gray-800 cursor-pointer p-1 flex duration-200 rounded-md"
+        >
+          {" "}
+          <IoArrowRedoOutline />
+        </button>
       </div>
       {action === "writing" ? (
         <textarea
